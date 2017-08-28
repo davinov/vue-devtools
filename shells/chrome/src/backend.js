@@ -9,6 +9,7 @@ function handshake (e) {
   if (e.data.source === 'vue-devtools-proxy' && e.data.payload === 'init') {
     window.removeEventListener('message', handshake)
 
+    console.log('handshaked!')
     let listeners = []
     const bridge = new Bridge({
       listen (fn) {
@@ -26,7 +27,7 @@ function handshake (e) {
           payload: data
         }, '*')
       }
-    })
+    }, document.URL)
 
     bridge.on('shutdown', () => {
       listeners.forEach(l => {
@@ -35,6 +36,7 @@ function handshake (e) {
       listeners = []
     })
 
+    console.log('init backend', bridge.frameURL)
     initBackend(bridge)
   }
 }

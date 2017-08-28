@@ -3,30 +3,37 @@
 // to the chrome runtime API. It serves as a proxy between the injected
 // backend and the Vue devtools panel.
 
-const port = chrome.runtime.connect({
-  name: 'content-script'
-})
+// Install the proxy only once
+if (!window.__VUE_DEVTOOL_PROXY_INSTALLED__) {
+  window.__VUE_DEVTOOL_PROXY_INSTALLED__ = true
 
-port.onMessage.addListener(sendMessageToBackend)
-window.addEventListener('message', sendMessageToDevtools)
-port.onDisconnect.addListener(handleDisconnect)
+  const port = chrome.runtime.connect({
+    name: 'content-script'
+  })
 
-sendMessageToBackend('init')
+  port.onMessage.addListener(sendMessageToBackend)
+  window.addEventListener('message', sendMessageToDevtools)
+  port.onDisconnect.addListener(handleDisconnect)
 
-function sendMessageToBackend (payload) {
-  window.postMessage({
-    source: 'vue-devtools-proxy',
-    payload: payload
-  }, '*')
-}
+  console.log('proxy added for frame ', window.location.href)
+  sendMessageToBackend('init')
 
-function sendMessageToDevtools (e) {
-  if (e.data && e.data.source === 'vue-devtools-backend') {
-    port.postMessage(e.data.payload)
+  function sendMessageToBackend(payload) {
+    window.postMessage({
+      source: 'vue-devtools-proxy',
+      payload: payload
+    }, '*')
   }
-}
 
-function handleDisconnect () {
-  window.removeEventListener('message', sendMessageToDevtools)
-  sendMessageToBackend('shutdown')
+  function sendMessageToDevtools(e) {
+    if (e.data && e.data.source === 'vue-devtools-backend') {
+      port.postMessage(e.data.payload)
+    }
+  }
+
+  function handleDisconnect() {
+    window.removeEventListener('message', sendMessageToDevtools)
+    sendMessageToBackend('shutdown')
+  }
+
 }

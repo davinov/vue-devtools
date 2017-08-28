@@ -4,27 +4,35 @@
 const ports = {}
 
 chrome.runtime.onConnect.addListener(port => {
-  let tab
+  let tabId
+  let frameId, frameURL
   let name
-  if (isNumeric(port.name)) {
-    tab = port.name
+  let id
+  if (isNumeric(port.name.split('#')[0])) {
+    tabId = +port.name.split('#')[0]
+    frameURL = port.name.split('#')[1]
+    id = port.name
     name = 'devtools'
-    installProxy(+port.name)
+    installProxy(tabId, id)
   } else {
-    tab = port.sender.tab.id
+    tabId = port.sender.tab.id
+    frameId = port.sender.frameId
+    frameURL = port.sender.url
+    id = tabId + '#' + frameURL
+    console.log('heard of backend for tab#frame ', id)
     name = 'backend'
   }
 
-  if (!ports[tab]) {
-    ports[tab] = {
+  if (!ports[id]) {
+    ports[id] = {
       devtools: null,
       backend: null
     }
   }
-  ports[tab][name] = port
+  ports[id][name] = port
 
-  if (ports[tab].devtools && ports[tab].backend) {
-    doublePipe(tab, ports[tab].devtools, ports[tab].backend)
+  if (ports[id].devtools && ports[id].backend) {
+    doublePipe(id, ports[id].devtools, ports[id].backend)
   }
 })
 
@@ -32,14 +40,16 @@ function isNumeric (str) {
   return +str + '' === str
 }
 
-function installProxy (tabId) {
+function installProxy(tabId, portId) {
   chrome.tabs.executeScript(tabId, {
-    file: '/build/proxy.js'
+    file: '/build/proxy.js',
+    allFrames: true
   }, function (res) {
     if (!res) {
-      ports[tabId].devtools.postMessage('proxy-fail')
+      ports[portId].devtools.postMessage('proxy-fail')
+      console.log('proxy fails', portId)
     } else {
-      console.log('injected proxy to tab ' + tabId)
+      console.log('injected proxy to all frames of tab ' + tabId)
     }
   })
 }

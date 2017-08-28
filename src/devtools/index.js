@@ -1,7 +1,6 @@
 import Vue from 'vue'
 import App from './App.vue'
 import store from './store'
-import { parse } from '../util'
 
 // Capture and log devtool errors when running as actual extension
 // so that we can debug it by inspecting the background page.
@@ -44,7 +43,9 @@ export function initDevTools (shell) {
     if (app) {
       app.$destroy()
     }
-    bridge.removeAllListeners()
+    if  (bridge)
+      bridge.removeAllListeners()
+    store.dispatch('resetAvailableFrames')
     initApp(shell)
   })
 }
@@ -57,48 +58,7 @@ export function initDevTools (shell) {
  */
 
 function initApp (shell) {
-  shell.connect(bridge => {
-    window.bridge = bridge
-
-    bridge.once('ready', version => {
-      store.commit(
-        'SHOW_MESSAGE',
-        'Ready. Detected Vue ' + version + '.'
-      )
-      bridge.send('vuex:toggle-recording', store.state.vuex.enabled)
-      bridge.send('events:toggle-recording', store.state.events.enabled)
-    })
-
-    bridge.once('proxy-fail', () => {
-      store.commit(
-        'SHOW_MESSAGE',
-        'Proxy injection failed.'
-      )
-    })
-
-    bridge.on('flush', payload => {
-      store.commit('components/FLUSH', parse(payload))
-    })
-
-    bridge.on('instance-details', details => {
-      store.commit('components/RECEIVE_INSTANCE_DETAILS', parse(details))
-    })
-
-    bridge.on('vuex:init', snapshot => {
-      store.commit('vuex/INIT', snapshot)
-    })
-
-    bridge.on('vuex:mutation', payload => {
-      store.commit('vuex/RECEIVE_MUTATION', payload)
-    })
-
-    bridge.on('event:triggered', payload => {
-      store.commit('events/RECEIVE_EVENT', parse(payload))
-      if (store.state.tab !== 'events') {
-        store.commit('events/INCREASE_NEW_EVENT_COUNT')
-      }
-    })
-
+  shell.connect(() => {
     app = new Vue({
       store,
       render (h) {
@@ -106,4 +66,16 @@ function initApp (shell) {
       }
     }).$mount('#app')
   })
+}
+
+/**
+ * Register a frame to become inspectable
+ *
+ * @param {object} frame
+ *   @param {string} frame.url
+ *   @param {Bridge} frame.bridge
+ */
+export function registerFrame(frame) {
+  console.log('Register frame', frame)
+  store.dispatch('registerFrame', frame)
 }

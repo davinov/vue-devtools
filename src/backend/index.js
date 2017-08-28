@@ -5,7 +5,6 @@ import { highlight, unHighlight, getInstanceRect } from './highlighter'
 import { initVuexBackend } from './vuex'
 import { initEventsBackend } from './events'
 import { stringify, classify, camelize } from '../util'
-import { getDocumentTarget, setDocumentTarget, getAllTargets } from './target-document'
 import path from 'path'
 
 // Use a custom basename functions instead of the shimed version
@@ -42,6 +41,7 @@ export function initBackend (_bridge) {
 }
 
 function connect () {
+  console.log('connect')
   hook.currentTab = 'components'
   bridge.on('switch-tab', tab => {
     hook.currentTab = tab
@@ -77,13 +77,6 @@ function connect () {
     flush()
   })
 
-  bridge.on('change-target', (id) => {
-    const target = getAllTargets().find(t => t.id === id)
-    if (target) {
-      setDocumentTarget(target.doc)
-      scan()
-    }
-  })
   bridge.on('refresh', scan)
   bridge.on('enter-instance', id => highlight(instanceMap.get(id)))
   bridge.on('leave-instance', unHighlight)
@@ -111,10 +104,11 @@ function connect () {
  */
 
 function scan () {
+  console.log('scan')
   rootInstances.length = 0
   let inFragment = false
   let currentFragment = null
-  walk(getDocumentTarget(), function (node) {
+  walk(document, function (node) {
     if (inFragment) {
       if (node === currentFragment._fragmentEnd) {
         inFragment = false

@@ -5,8 +5,8 @@
   <div class="header">
     <img class="logo" src="./assets/logo.png" alt="Vue">
     <span class="message-container">
-      <span v-if="false" class="message" :key="message">{{ message }}</span>
-      <target-selector/>
+      <span v-if="!hasMultipleFrames" class="message" :key="message">{{ message }}</span>
+      <frame-selector/>
     </span>
     <a class="button components"
       :class="{ active: tab === 'components'}"
@@ -46,7 +46,7 @@
 import ComponentsTab from './views/components/ComponentsTab.vue'
 import EventsTab from './views/events/EventsTab.vue'
 import VuexTab from './views/vuex/VuexTab.vue'
-import TargetSelector from './components/TargetSelector.vue'
+import FrameSelector from './components/FrameSelector.vue'
 
 import { mapState } from 'vuex'
 
@@ -63,12 +63,13 @@ export default {
     components: ComponentsTab,
     vuex: VuexTab,
     events: EventsTab,
-    TargetSelector
+    FrameSelector
   },
   computed: mapState({
     message: state => state.message,
     tab: state => state.tab,
-    newEventCount: state => state.events.newEventCount
+    newEventCount: state => state.events.newEventCount,
+    hasMultipleFrames: state => state.availableFrames.length > 1
   }),
   methods: {
     switchTab (tab) {
@@ -82,6 +83,7 @@ export default {
       const refreshIcon = this.$refs.refresh
       refreshIcon.style.animation = 'none'
 
+      console.log('refresh asked to', bridge.frameURL)
       bridge.send('refresh')
       bridge.once('flush', () => {
         refreshIcon.style.animation = 'rotate 1s'

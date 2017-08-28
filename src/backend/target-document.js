@@ -32,6 +32,7 @@ function packTarget (doc) {
 
 export function getAllTargets () {
   const targets = [packTarget(document)]
+  console.log('find targets', findTargetsInElement(targets[0]))
   return targets.concat(findTargetsInElement(targets[0]))
 }
 
